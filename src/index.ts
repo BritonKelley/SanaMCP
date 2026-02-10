@@ -1,70 +1,56 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { FetchTripResponse, Trip } from "./models";
 
 // ── Define schemas ──────────────────────────────────────────────
 
 const LookupTripDetailsSchema = z.object({
-  tripId: z.string().min(1).describe("Unique trip identifier (e.g. TRP-12345)"),
-  includeHistory: z.boolean().optional().default(false).describe("Whether to include past status updates"),
+  tripId: z.number().min(1).describe("Unique trip identifier (e.g. 23)"),
 });
 
 const TripInventorySchema = z.object({
-  destination: z.string().optional().describe("Optional filter by destination city or code"),
-  startDate: z.string().optional().describe("Optional ISO date filter: YYYY-MM-DD"),
-  limit: z.number().int().min(1).max(50).optional().default(20).describe("Max number of trips to return"),
+  tripName: z.string().optional().describe("Optional filter by destination city or country. Matches the trip's name field."),
 });
 
-// ── Fake "database" ─────────────────────────────────────────────
+// Helper function for making NWS API requests
+const NWS_API_BASE = "https://pvjd48s9rb.execute-api.us-east-1.amazonaws.com/prod/api";
+const USER_AGENT = "pill-mcp-app/1.0";
+const token = "You thought ;) Need to setup getting auth.";
 
-type Trip = {
-  id: string;
-  destination: string;
-  startDate: string;
-  status: "planned" | "booked" | "in-progress" | "completed";
-  travelers: string[];
-  lastUpdated: string;
-};
+async function makePILLRequest<T>(url: string): Promise<T | null> {
+  const headers = {
+    "User-Agent": USER_AGENT,
+    Accept: 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
+    'X-Requested-With': 'XMLHttpRequest',
+    'x-sana-token': `Bearer ${token}`
+  };
 
-const fakeTrips: Trip[] = [
-  {
-    id: "TRP-001",
-    destination: "Paris",
-    startDate: "2026-04-10",
-    status: "booked",
-    travelers: ["Alice", "Bob"],
-    lastUpdated: "2026-02-01T14:30:00Z",
-  },
-  {
-    id: "TRP-002",
-    destination: "Tokyo",
-    startDate: "2026-05-15",
-    status: "planned",
-    travelers: ["Charlie"],
-    lastUpdated: "2026-02-05T09:15:00Z",
-  },
-  // ... add more as needed
-];
+  try {
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return (await response.json()) as T;
+  } catch (error) {
+    console.error("Error making NWS request:", error);
+    return null;
+  }
+}
 
 // ── Tool implementations ────────────────────────────────────────
 
 async function lookupTripDetails(args: unknown) {
   const input = LookupTripDetailsSchema.parse(args);
+  const tripUrl = `${NWS_API_BASE}/trip/${input.tripId}`;
 
-  const trip = fakeTrips.find(t => t.id === input.tripId);
+  const trip = await makePILLRequest<FetchTripResponse>(tripUrl)
   if (!trip) {
     throw new Error(`Trip ${input.tripId} not found`);
   }
 
   let result = { ...trip };
-
-  if (input.includeHistory) {
-    // Fake history — in reality you'd query a log/audit table
-    (result as any).history = [
-      { date: "2026-01-20", note: "Trip created" },
-      { date: "2026-02-01", note: "Flight booked" },
-    ];
-  }
 
   return {
     content: [
@@ -76,22 +62,16 @@ async function lookupTripDetails(args: unknown) {
   };
 }
 
-async function tripInventory(args: unknown) {
+async function searchTrips(args: unknown) {
   const input = TripInventorySchema.parse(args);
+  const tripsUrl = `${NWS_API_BASE}/trip`;
 
-  let filtered = fakeTrips;
+  const trips = await makePILLRequest<Trip[]>(tripsUrl)
 
-  if (input.destination) {
-    filtered = filtered.filter(t =>
-      t.destination.toLowerCase().includes(input.destination!.toLowerCase())
-    );
+  let filtered = trips || [];
+  if (input.tripName && trips) {
+    filtered = trips.filter(t => t.name.toLowerCase().includes(input.tripName!.toLowerCase()));
   }
-
-  if (input.startDate) {
-    filtered = filtered.filter(t => t.startDate >= input.startDate!);
-  }
-
-  filtered = filtered.slice(0, input.limit);
 
   return {
     content: [
@@ -99,7 +79,7 @@ async function tripInventory(args: unknown) {
         type: "text" as const,
         text: JSON.stringify({
           trips: filtered,
-          totalAvailable: fakeTrips.length,
+          totalAvailable: filtered.length,
           returned: filtered.length,
         }, null, 2),
       },
@@ -129,14 +109,14 @@ server.registerTool(
 );
 
 server.registerTool(
-  "trip_inventory",
+  "search_trips",
   {
-    title: "Trip Inventory",
+    title: "Search Trips",
     description:
-      "List available/upcoming trips, optionally filtered by destination or date. Use this to answer questions like 'what trips are planned?', 'show me trips to Europe', or 'upcoming trips in May'.",
+      "List trips, optionally filtered by destination. Use this to answer questions like 'what trips are planned?', 'show me trips to Europe'. Use to find trip IDs for the lookup_trip_details tool.",
     inputSchema: TripInventorySchema.shape,
   },
-  tripInventory
+  searchTrips
 );
 
 // Start the server
