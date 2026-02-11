@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { CognitoTokenProvider } from "./auth.js";
+import { loadAppConfig } from "./config.js";
 import {
   FetchTripResponseSchema,
   LookupTripDetailsSchema,
@@ -8,41 +10,96 @@ import {
 } from "./models.js";
 import type { FetchTripResponse, Trip } from "./models.js";
 
-// Helper function for making NWS API requests
-const NWS_API_BASE = "https://pvjd48s9rb.execute-api.us-east-1.amazonaws.com/prod/api";
-const USER_AGENT = "pill-mcp-app/1.0";
-const token = "You thought ;) Need to setup getting auth.";
+const appConfig = loadAppConfig();
+const tokenProvider = new CognitoTokenProvider(appConfig.auth);
+const SANA_API_BASE = appConfig.apiBaseUrl;
+const USER_AGENT = appConfig.userAgent;
 
-async function makePILLRequest<T>(url: string): Promise<T | null> {
-  const headers = {
-    "User-Agent": USER_AGENT,
-    Accept: 'application/json',
-    'Content-Type': 'application/json; charset=utf-8',
-    'X-Requested-With': 'XMLHttpRequest',
-    'x-sana-token': `Bearer ${token}`
-  };
-
-  try {
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error("Error making NWS request:", error);
-    return null;
+class SanaApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+    readonly responseBody?: string
+  ) {
+    super(message);
+    this.name = "SanaApiRequestError";
   }
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+async function fetchWithBearer(url: string, token: string): Promise<Response> {
+  return fetch(url, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Accept: "application/json",
+      "Content-Type": "application/json; charset=utf-8",
+      "X-Requested-With": "XMLHttpRequest",
+      "x-sana-token": `Bearer ${token}`,
+    },
+  });
+}
+
+async function makeSanaRequest<T>(url: string): Promise<T> {
+  let accessToken: string;
+  try {
+    accessToken = await tokenProvider.getAccessToken();
+  } catch (error) {
+    throw new SanaApiRequestError(
+      `Unable to retrieve Cognito access token: ${formatError(error)}`
+    );
+  }
+
+  let response = await fetchWithBearer(url, accessToken);
+  if (response.status === 401) {
+    try {
+      accessToken = await tokenProvider.forceRefresh();
+    } catch (error) {
+      throw new SanaApiRequestError(
+        `Sana authentication failed while refreshing token: ${formatError(
+          error
+        )}`,
+        401
+      );
+    }
+
+    response = await fetchWithBearer(url, accessToken);
+  }
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    const bodySnippet = responseBody.slice(0, 500);
+    throw new SanaApiRequestError(
+      `Sana API request failed (${response.status}): ${bodySnippet}`,
+      response.status,
+      responseBody
+    );
+  }
+
+  return (await response.json()) as T;
 }
 
 // ── Tool implementations ────────────────────────────────────────
 
 async function lookupTripDetails(args: unknown) {
   const input = LookupTripDetailsSchema.parse(args);
-  const tripUrl = `${NWS_API_BASE}/trip/${input.tripId}`;
+  const tripUrl = `${SANA_API_BASE}/trip/${input.tripId}`;
 
-  const trip = await makePILLRequest<FetchTripResponse>(tripUrl)
-  if (!trip) {
-    throw new Error(`Trip ${input.tripId} not found`);
+  let trip: FetchTripResponse;
+  try {
+    trip = await makeSanaRequest<FetchTripResponse>(tripUrl);
+  } catch (error) {
+    if (error instanceof SanaApiRequestError && error.status === 404) {
+      throw new Error(`Trip ${input.tripId} not found`);
+    }
+
+    throw error;
   }
 
   const structuredContent = FetchTripResponseSchema.parse(trip);
@@ -60,13 +117,16 @@ async function lookupTripDetails(args: unknown) {
 
 async function searchTrips(args: unknown) {
   const input = TripInventorySchema.parse(args);
-  const tripsUrl = `${NWS_API_BASE}/trip`;
+  const tripsUrl = `${SANA_API_BASE}/trip`;
 
-  const trips = await makePILLRequest<Trip[]>(tripsUrl)
+  const trips = await makeSanaRequest<Trip[]>(tripsUrl);
 
-  let filtered = trips || [];
-  if (input.tripName && trips) {
-    filtered = trips.filter(t => t.name.toLowerCase().includes(input.tripName!.toLowerCase()));
+  let filtered = trips;
+  if (input.tripName) {
+    const normalizedFilter = input.tripName.toLowerCase();
+    filtered = trips.filter((t) =>
+      t.name.toLowerCase().includes(normalizedFilter)
+    );
   }
 
   const structuredContent = SearchTripsResponseSchema.parse({
@@ -101,7 +161,7 @@ server.registerTool(
   {
     title: "Lookup Trip Details",
     description:
-      "Retrieve full details for a specific trip by its ID. Use this when the user asks about a particular trip, booking status, travelers, or history.",
+      "Retrieve full details for a specific trip by its ID. Use this when the user asks about a particular trip, packed items, ormedication.",
     inputSchema: LookupTripDetailsSchema.shape,
     outputSchema: FetchTripResponseSchema.shape,
   },
@@ -124,7 +184,7 @@ server.registerTool(
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("PILL MCP Server running on stdio");
+  console.error("Sana MCP Server running on stdio");
 }
 
 main().catch((error) => {

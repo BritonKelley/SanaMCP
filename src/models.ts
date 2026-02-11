@@ -1,8 +1,18 @@
 import { z } from "zod";
 
-const monthYearSchema = z
+const tripDateSchema = z
   .string()
-  .regex(/^(0[1-9]|1[0-2])\/\d{4}$/, "Date must be in MM/YYYY format.");
+  .regex(
+    /^(?:19|20)\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+    "Date must be in YYYY-MM-DD format."
+  );
+
+const tripItemDateSchema = z
+  .string()
+  .regex(
+    /^(0[1-9]|1[0-2])\/\d{4}$/,
+    "Date must be in MM/YYYY format."
+  );
 
 const categorySchema = z.enum([
   "Allergy",
@@ -68,8 +78,8 @@ export const TripInventorySchema = z.object({
 export const TripSchema = z.object({
   tripId: z.number().min(1).describe("Unique identifier for the trip."),
   name: z.string().describe("Human-readable trip name, usually destination-focused."),
-  startDate: monthYearSchema.describe("Trip start date in MM/YYYY format."),
-  endDate: monthYearSchema.describe("Trip end date in MM/YYYY format."),
+  startDate: tripDateSchema.describe("Trip start date in YYYY-MM-DD format."),
+  endDate: tripDateSchema.describe("Trip end date in YYYY-MM-DD format."),
   countryCode: z.string().describe("ISO country code for the trip destination."),
   status: z.enum([
     TripStatus.Created,
@@ -88,19 +98,19 @@ export const TripItemSchema = z.object({
     .describe("Universal Product Code for the item (8-digit UPC-E or 12-digit UPC-A)."),
   boxNumber: z.number().describe("Packing box number where the item is stored."),
   quantity: z.number().describe("Count of units packed for this item."),
-  expirationDate: monthYearSchema.describe("Item expiration date in MM/YYYY format."),
+  expirationDate: tripItemDateSchema.describe("Item expiration date in MM/YYYY format."),
   lotNumber: z.string().describe("Manufacturer lot/batch identifier."),
   inventoryId: z.number().describe("Internal inventory record identifier for this item."),
   name: z.string().describe("Display name of the medication or supply."),
   brand: z.string().describe("Brand name of the item."),
   manufacturer: z.string().describe("Manufacturer of the item."),
-  manufacturedDate: monthYearSchema.optional().describe("Manufacture date in MM/YYYY format, when available."),
+  manufacturedDate: tripItemDateSchema.optional().describe("Manufacture date in MM/YYYY format, when available."),
   presentation: presentationSchema.describe("Presentation form of the item."),
   dose: z.string().describe("Dose strength and format for the item."),
   category: categorySchema.describe("Inventory category classification."),
   productAmount: z.number().describe("Total amount contained in a full item unit."),
   productAmountUnit: z.string().describe("Unit of measure for productAmount (e.g., mg, mL)."),
-  partialAmount: z.number().optional().describe("Remaining amount when the unit is partial."),
+  partialAmount: z.number().nullish().describe("Remaining amount when the unit is partial. Can be null when unknown."),
   partialamountUnit: z.string().optional().describe("Unit of measure for partialAmount."),
 });
 
@@ -111,7 +121,7 @@ export const ReturnedItemSchema = z.object({
     .regex(/^\d{8}(\d{4})?$/, "UPC must be 8 digits (UPC-E) or 12 digits (UPC-A).")
     .describe("Universal Product Code for the returned item (8-digit UPC-E or 12-digit UPC-A)."),
   lotNumber: z.string().describe("Manufacturer lot/batch identifier of the returned item."),
-  expirationDate: monthYearSchema.describe("Returned item expiration date in MM/YYYY format."),
+  expirationDate: tripItemDateSchema.describe("Returned item expiration date in MM/YYYY format."),
   inventoryId: z.number().describe("Internal inventory record identifier for the returned item."),
   returnedQuantity: z.number().describe("Number of units returned."),
   returnedProductAmount: z.number().describe("Amount returned from the original item contents."),

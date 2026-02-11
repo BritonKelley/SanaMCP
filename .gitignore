@@ -73,6 +73,9 @@ web_modules/
 .env.*
 !.env.example
 
+# Local app config (contains secrets)
+config/sanamcp.local.json
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

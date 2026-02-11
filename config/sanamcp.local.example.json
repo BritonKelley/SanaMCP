@@ -1,0 +1,10 @@
+{
+  "apiBaseUrl": "https://pvjd48s9rb.execute-api.us-east-1.amazonaws.com/prod/api",
+  "userAgent": "sana-mcp-app/1.0",
+  "auth": {
+    "tokenUrl": "REPLACE_WITH_TOKEN_URL",
+    "clientId": "REPLACE_WITH_CLIENT_ID",
+    "clientSecret": "REPLACE_WITH_CLIENT_SECRET",
+    "scope": "default-m2m-resource-server-sn-4x-/read"
+  }
+}
