@@ -1,5 +1,5 @@
 {
-  "name": "trip-mcp-server",
+  "name": "sana-mcp-server",
   "version": "1.0.0",
   "description": "Sana trip MCP server for searching trips and looking up trip details.",
   "main": "./dist/index.js",

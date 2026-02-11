@@ -11,13 +11,13 @@ MCP server for searching Sana trips and looking up trip details over stdio.
 ### From npm (published package)
 
 ```bash
-npm install -g trip-mcp-server
+npm install -g sana-mcp-server
 ```
 
 or run without global install:
 
 ```bash
-npx -y trip-mcp-server
+npx -y sana-mcp-server
 ```
 
 ### From source
@@ -58,7 +58,7 @@ If `SANA_CONFIG_PATH` is not set, default path is `config/sanamcp.local.json`.
   "mcpServers": {
     "sana_trip": {
       "command": "npx",
-      "args": ["-y", "trip-mcp-server"],
+      "args": ["-y", "sana-mcp-server"],
       "env": {
         "SANA_CONFIG_PATH": "/Users/you/.config/sanamcp/sanamcp.local.json"
       }
