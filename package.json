@@ -1,17 +1,29 @@
 {
   "name": "trip-mcp-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Sana trip MCP server for searching trips and looking up trip details.",
+  "main": "./dist/index.js",
+  "bin": {
+    "sanamcp-server": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "config/sanamcp.local.example.json",
+    "README.md"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "prepack": "npm run build",
     "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@types/node": "^25.2.2",
     "tsx": "^4.21.0",
