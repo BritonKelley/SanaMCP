@@ -1,17 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { FetchTripResponse, Trip } from "./models";
-
-// ── Define schemas ──────────────────────────────────────────────
-
-const LookupTripDetailsSchema = z.object({
-  tripId: z.number().min(1).describe("Unique trip identifier (e.g. 23)"),
-});
-
-const TripInventorySchema = z.object({
-  tripName: z.string().optional().describe("Optional filter by destination city or country. Matches the trip's name field."),
-});
+import {
+  FetchTripResponseSchema,
+  LookupTripDetailsSchema,
+  SearchTripsResponseSchema,
+  TripInventorySchema,
+} from "./models";
+import type { FetchTripResponse, SearchTripsResponse, Trip } from "./models";
 
 // Helper function for making NWS API requests
 const NWS_API_BASE = "https://pvjd48s9rb.execute-api.us-east-1.amazonaws.com/prod/api";
@@ -50,15 +45,16 @@ async function lookupTripDetails(args: unknown) {
     throw new Error(`Trip ${input.tripId} not found`);
   }
 
-  let result = { ...trip };
+  const structuredContent = FetchTripResponseSchema.parse(trip);
 
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(result, null, 2),
+        text: JSON.stringify(structuredContent, null, 2),
       },
     ],
+    structuredContent,
   };
 }
 
@@ -73,17 +69,20 @@ async function searchTrips(args: unknown) {
     filtered = trips.filter(t => t.name.toLowerCase().includes(input.tripName!.toLowerCase()));
   }
 
+  const structuredContent = SearchTripsResponseSchema.parse({
+    trips: filtered,
+    totalAvailable: filtered.length,
+    returned: filtered.length,
+  });
+
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({
-          trips: filtered,
-          totalAvailable: filtered.length,
-          returned: filtered.length,
-        }, null, 2),
+        text: JSON.stringify(structuredContent, null, 2),
       },
     ],
+    structuredContent,
   };
 }
 
@@ -104,6 +103,7 @@ server.registerTool(
     description:
       "Retrieve full details for a specific trip by its ID. Use this when the user asks about a particular trip, booking status, travelers, or history.",
     inputSchema: LookupTripDetailsSchema.shape,
+    outputSchema: FetchTripResponseSchema.shape,
   },
   lookupTripDetails
 );
@@ -115,6 +115,7 @@ server.registerTool(
     description:
       "List trips, optionally filtered by destination. Use this to answer questions like 'what trips are planned?', 'show me trips to Europe'. Use to find trip IDs for the lookup_trip_details tool.",
     inputSchema: TripInventorySchema.shape,
+    outputSchema: SearchTripsResponseSchema.shape,
   },
   searchTrips
 );
