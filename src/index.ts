@@ -5,8 +5,8 @@ import {
   LookupTripDetailsSchema,
   SearchTripsResponseSchema,
   TripInventorySchema,
-} from "./models";
-import type { FetchTripResponse, SearchTripsResponse, Trip } from "./models";
+} from "./models.js";
+import type { FetchTripResponse, Trip } from "./models.js";
 
 // Helper function for making NWS API requests
 const NWS_API_BASE = "https://pvjd48s9rb.execute-api.us-east-1.amazonaws.com/prod/api";
