@@ -71,3 +71,4 @@ If `SANA_CONFIG_PATH` is not set, default path is `config/sanamcp.local.json`.
 
 - `search_trips`
 - `lookup_trip_details`
+- `assess_customs_clearance_risk`

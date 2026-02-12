@@ -147,6 +147,93 @@ export const SearchTripsResponseSchema = z.object({
   returned: z.number().describe("Count of trips returned after applying filters."),
 });
 
+const CustomsRiskSeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+const CustomsRiskTypeSchema = z.enum([
+  "EXPIRATION",
+  "DATA_GAP",
+  "TRIP_INELIGIBLE",
+]);
+
+export const AssessCustomsClearanceRiskSchema = z.object({
+  tripId: z.number().min(1).describe("Target trip identifier to assess."),
+  countryCode: z
+    .string()
+    .optional()
+    .describe(
+      "Optional destination country override. Defaults to the trip countryCode."
+    ),
+  minShelfLifeDays: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "Minimum remaining shelf life in days after country entry. Defaults to 180."
+    ),
+  includeWarnings: z
+    .boolean()
+    .optional()
+    .describe("Include MEDIUM/LOW findings in output. Defaults to true."),
+});
+
+export const CustomsClearanceRiskFindingSchema = z.object({
+  severity: CustomsRiskSeveritySchema,
+  type: CustomsRiskTypeSchema,
+  upc: z.string().optional(),
+  itemName: z.string().optional(),
+  lotNumber: z.string().optional(),
+  expirationDate: z.string().optional(),
+  inventoryId: z.number().optional(),
+  message: z.string(),
+  recommendedAction: z.string(),
+});
+
+export const CustomsClearanceRiskSummarySchema = z.object({
+  assessment: z
+    .enum(["PASS", "FAIL"])
+    .describe("Simple customs assessment outcome for the trip."),
+  totalItems: z.number(),
+  failedItemsCount: z
+    .number()
+    .describe("Count of distinct items that failed customs assessment."),
+});
+
+export const CustomsExpirationFindingsByMonthSchema = z.object({
+  expirationMonth: z
+    .string()
+    .describe("Expiration month bucket in MM/YYYY format."),
+  count: z.number().describe("Number of expiration findings in this month."),
+});
+
+export const CustomsFailedItemInBoxSchema = z.object({
+  itemName: z.string(),
+  expirationDate: z.string(),
+  instances: z
+    .number()
+    .int()
+    .min(1)
+    .describe("How many failed entries share this same item and expiration."),
+});
+
+export const CustomsFailedItemsByBoxSchema = z.object({
+  boxNumber: z.number(),
+  items: z.array(CustomsFailedItemInBoxSchema),
+});
+
+export const CustomsClearanceRiskBreakdownSchema = z.object({
+  totalExpirationFindings: z.number(),
+  expirationFindingsByMonth: z.array(CustomsExpirationFindingsByMonthSchema),
+  failedItemsByBox: z.array(CustomsFailedItemsByBoxSchema),
+});
+
+export const AssessCustomsClearanceRiskResponseSchema = z.object({
+  trip: TripSchema,
+  summary: CustomsClearanceRiskSummarySchema,
+  breakdown: CustomsClearanceRiskBreakdownSchema,
+  findings: z.array(CustomsClearanceRiskFindingSchema),
+  nextSteps: z.array(z.string()),
+});
+
 export type LookupTripDetailsInput = z.infer<typeof LookupTripDetailsSchema>;
 export type TripInventoryInput = z.infer<typeof TripInventorySchema>;
 export type Trip = z.infer<typeof TripSchema>;
@@ -155,3 +242,15 @@ export type ReturnedItem = z.infer<typeof ReturnedItemSchema>;
 export type ReturnedItems = z.infer<typeof ReturnedItemsSchema>;
 export type FetchTripResponse = z.infer<typeof FetchTripResponseSchema>;
 export type SearchTripsResponse = z.infer<typeof SearchTripsResponseSchema>;
+export type AssessCustomsClearanceRiskInput = z.infer<
+  typeof AssessCustomsClearanceRiskSchema
+>;
+export type CustomsClearanceRiskFinding = z.infer<
+  typeof CustomsClearanceRiskFindingSchema
+>;
+export type CustomsClearanceRiskBreakdown = z.infer<
+  typeof CustomsClearanceRiskBreakdownSchema
+>;
+export type AssessCustomsClearanceRiskResponse = z.infer<
+  typeof AssessCustomsClearanceRiskResponseSchema
+>;

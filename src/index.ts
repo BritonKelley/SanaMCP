@@ -5,9 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CognitoTokenProvider } from "./auth.js";
 import { loadAppConfig } from "./config.js";
 import { SanaApiClient } from "./sanaApi.js";
+import { createAssessCustomsClearanceRiskHandler } from "./tools/assessCustomsClearanceRisk.js";
 import { createLookupTripDetailsHandler } from "./tools/lookupTripDetails.js";
 import { createSearchTripsHandler } from "./tools/searchTrips.js";
 import {
+  AssessCustomsClearanceRiskResponseSchema,
+  AssessCustomsClearanceRiskSchema,
   FetchTripResponseSchema,
   LookupTripDetailsSchema,
   SearchTripsResponseSchema,
@@ -21,6 +24,8 @@ const sanaApiClient = new SanaApiClient(
   appConfig.userAgent,
   tokenProvider
 );
+const assessCustomsClearanceRisk =
+  createAssessCustomsClearanceRiskHandler(sanaApiClient);
 const lookupTripDetails = createLookupTripDetailsHandler(sanaApiClient);
 const searchTrips = createSearchTripsHandler(sanaApiClient);
 
@@ -39,7 +44,7 @@ server.registerTool(
   {
     title: "Lookup Trip Details",
     description:
-      "Retrieve full details for a specific trip by its ID. Use this when the user asks about a particular trip, packed items, ormedication.",
+      "Retrieve full details for a specific trip by its ID. Use this when the user asks about a particular trip, packed items, or medication.",
     inputSchema: LookupTripDetailsSchema.shape,
     outputSchema: FetchTripResponseSchema.shape,
   },
@@ -56,6 +61,18 @@ server.registerTool(
     outputSchema: SearchTripsResponseSchema.shape,
   },
   searchTrips
+);
+
+server.registerTool(
+  "assess_customs_clearance_risk",
+  {
+    title: "Assess Customs Clearance Risk",
+    description:
+      "Assess whether a PACKING or PACKED trip that has not yet started can clear customs based on 6-month medication shelf-life requirements.",
+    inputSchema: AssessCustomsClearanceRiskSchema.shape,
+    outputSchema: AssessCustomsClearanceRiskResponseSchema.shape,
+  },
+  assessCustomsClearanceRisk
 );
 
 // Start the server
