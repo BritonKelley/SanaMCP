@@ -14,6 +14,10 @@ const tripItemDateSchema = z
     "Date must be in MM/YYYY format."
   );
 
+const upcSchema = z
+  .string()
+  .regex(/^\d{8}(\d{4})?$/, "UPC must be 8 digits (UPC-E) or 12 digits (UPC-A).");
+
 const categorySchema = z.enum([
   "Allergy",
   "Analgesics",
@@ -92,9 +96,7 @@ export const TripSchema = z.object({
 });
 
 export const TripItemSchema = z.object({
-  upc: z
-    .string()
-    .regex(/^\d{8}(\d{4})?$/, "UPC must be 8 digits (UPC-E) or 12 digits (UPC-A).")
+  upc: upcSchema
     .describe("Universal Product Code for the item (8-digit UPC-E or 12-digit UPC-A)."),
   boxNumber: z.number().describe("Packing box number where the item is stored."),
   quantity: z.number().describe("Count of units packed for this item."),
@@ -116,9 +118,7 @@ export const TripItemSchema = z.object({
 
 export const ReturnedItemSchema = z.object({
   name: z.string().describe("Display name of the returned item."),
-  upc: z
-    .string()
-    .regex(/^\d{8}(\d{4})?$/, "UPC must be 8 digits (UPC-E) or 12 digits (UPC-A).")
+  upc: upcSchema
     .describe("Universal Product Code for the returned item (8-digit UPC-E or 12-digit UPC-A)."),
   lotNumber: z.string().describe("Manufacturer lot/batch identifier of the returned item."),
   expirationDate: tripItemDateSchema.describe("Returned item expiration date in MM/YYYY format."),
@@ -145,6 +145,138 @@ export const SearchTripsResponseSchema = z.object({
   trips: z.array(TripSchema).describe("Trips matching the optional name filter."),
   totalAvailable: z.number().describe("Total number of trips returned in this response."),
   returned: z.number().describe("Count of trips returned after applying filters."),
+});
+
+export const ItemListInputSchema = z.object({
+  page: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("0-based page index for item search (default API behavior is page 0)."),
+  pageSize: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Page size for item search (for example 25)."),
+  filter: z
+    .string()
+    .optional()
+    .describe("Optional text filter applied by the Items API."),
+});
+
+export const ItemByUpcInputSchema = z.object({
+  upc: upcSchema.describe(
+    "Universal Product Code for item lookup (8-digit UPC-E or 12-digit UPC-A)."
+  ),
+});
+
+export const SortStateSchema = z.object({
+  empty: z.boolean().describe("True when no sorting is configured."),
+  sorted: z.boolean().describe("True when the current page is sorted."),
+  unsorted: z.boolean().describe("True when the current page is unsorted."),
+});
+
+export const PaginationStateSchema = z.object({
+  pageNumber: z.number().int().min(0).describe("Current 0-based page index."),
+  pageSize: z.number().int().min(1).describe("Configured page size."),
+  sort: SortStateSchema.describe("Sort metadata for this page."),
+  offset: z.number().int().min(0).describe("Row offset into the full result set."),
+  paged: z.boolean().describe("True when pagination is enabled."),
+  unpaged: z.boolean().describe("True when pagination is disabled."),
+});
+
+export const ItemSchema = z.object({
+  upc: upcSchema.describe("Universal Product Code for the item."),
+  name: z.string().describe("Display medication name."),
+  manufacturer: z.string().describe("Manufacturer name."),
+  brand: z.string().describe("Brand or trade name."),
+  presentation: presentationSchema.describe("Presentation form of the item."),
+  productAmount: z.number().describe("Amount contained per full item unit."),
+  productAmountUnit: z
+    .string()
+    .describe("Unit of measure for productAmount (for example Tablets or mL)."),
+  dose: z.string().describe("Dose strength and format."),
+  category: categorySchema.describe("Medication category."),
+});
+
+export const ItemWithQuantitySchema = ItemSchema.extend({
+  quantity: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Current on-hand quantity for this item."),
+});
+
+export const ItemListResponseSchema = z.object({
+  totalPages: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total available pages for the current item query."),
+  totalItems: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total matching item records across all pages."),
+  page: PaginationStateSchema.describe("Pagination metadata returned by the Items API."),
+  itemsWithQuantity: z
+    .array(ItemWithQuantitySchema)
+    .describe("Items returned for the requested page, each with on-hand quantity."),
+});
+
+export const ItemInventoryListInputSchema = z.object({
+  page: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      "0-based page index for item-inventory search (default API behavior is page 0)."
+    ),
+  pageSize: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Page size for item-inventory search (for example 100)."),
+  filter: z
+    .string()
+    .optional()
+    .describe("Optional text filter applied by the Item Inventory API."),
+});
+
+export const ItemInventoryRowSchema = ItemWithQuantitySchema.extend({
+  inventoryId: z
+    .number()
+    .int()
+    .min(1)
+    .describe("Unique inventory record identifier."),
+  lotNumber: z.string().describe("Manufacturer lot or batch number."),
+  expirationDate: tripItemDateSchema.describe("Inventory lot expiration in MM/YYYY format."),
+  manufacturedDate: tripItemDateSchema
+    .nullable()
+    .describe("Inventory lot manufactured date in MM/YYYY format. Null when unknown."),
+});
+
+export const ItemInventoryListResponseSchema = z.object({
+  totalPages: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total available pages for the current item-inventory query."),
+  totalItems: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total matching item-inventory records across all pages."),
+  page: PaginationStateSchema.describe(
+    "Pagination metadata returned by the Item Inventory API."
+  ),
+  itemInventoryRows: z
+    .array(ItemInventoryRowSchema)
+    .describe("Inventory rows returned for the requested page."),
 });
 
 const CustomsRiskSeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
@@ -242,6 +374,18 @@ export type ReturnedItem = z.infer<typeof ReturnedItemSchema>;
 export type ReturnedItems = z.infer<typeof ReturnedItemsSchema>;
 export type FetchTripResponse = z.infer<typeof FetchTripResponseSchema>;
 export type SearchTripsResponse = z.infer<typeof SearchTripsResponseSchema>;
+export type ItemListInput = z.infer<typeof ItemListInputSchema>;
+export type ItemByUpcInput = z.infer<typeof ItemByUpcInputSchema>;
+export type SortState = z.infer<typeof SortStateSchema>;
+export type PaginationState = z.infer<typeof PaginationStateSchema>;
+export type Item = z.infer<typeof ItemSchema>;
+export type ItemWithQuantity = z.infer<typeof ItemWithQuantitySchema>;
+export type ItemListResponse = z.infer<typeof ItemListResponseSchema>;
+export type ItemInventoryListInput = z.infer<typeof ItemInventoryListInputSchema>;
+export type ItemInventoryRow = z.infer<typeof ItemInventoryRowSchema>;
+export type ItemInventoryListResponse = z.infer<
+  typeof ItemInventoryListResponseSchema
+>;
 export type AssessCustomsClearanceRiskInput = z.infer<
   typeof AssessCustomsClearanceRiskSchema
 >;
