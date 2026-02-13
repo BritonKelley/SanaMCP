@@ -10,9 +10,12 @@ export function createSearchTripsHandler(sanaApiClient: SanaApiClient) {
     let filtered = trips;
     if (input.tripName) {
       const normalizedFilter = input.tripName.toLowerCase();
-      filtered = trips.filter((t) =>
+      filtered = filtered.filter((t) =>
         t.name.toLowerCase().includes(normalizedFilter)
       );
+    }
+    if (input.status) {
+      filtered = filtered.filter((t) => t.status === input.status);
     }
 
     const structuredContent = SearchTripsResponseSchema.parse({

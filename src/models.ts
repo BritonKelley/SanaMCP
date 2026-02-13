@@ -82,6 +82,22 @@ export const LookupTripDetailsSchema = z.object({
 
 export const TripInventorySchema = z.object({
   tripName: z.string().optional().describe("Optional trip name filter. Matches destination, city, or country terms in the trip name."),
+  status: z
+    .preprocess(
+      (value) => (typeof value === "string" ? value.trim().toUpperCase() : value),
+      z.enum([
+        TripStatus.Created,
+        TripStatus.Packing,
+        TripStatus.Packed,
+        TripStatus.Returned,
+        TripStatus.Complete,
+        TripStatus.Unknown,
+      ])
+    )
+    .optional()
+    .describe(
+      "Optional lifecycle status filter. Accepted values: CREATED, PACKING, PACKED, RETURNED, COMPLETE, UNKNOWN."
+    ),
 });
 
 export const TripSchema = z.object({

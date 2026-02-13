@@ -77,7 +77,7 @@ server.registerTool(
   {
     title: "Search Trips",
     description:
-      "List trips, optionally filtered by destination. Use this to answer questions like 'what trips are planned?', 'show me trips to Europe'. Use to find trip IDs for the lookup_trip_details tool.",
+      "List trips, optionally filtered by destination and/or status (for example PACKED). Use this to answer questions like 'what trips are planned?' or to find trip IDs for lookup_trip_details.",
     inputSchema: TripInventorySchema.shape,
     outputSchema: SearchTripsResponseSchema.shape,
   },
