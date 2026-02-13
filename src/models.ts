@@ -192,13 +192,21 @@ export const ItemSchema = z.object({
   name: z.string().describe("Display medication name."),
   manufacturer: z.string().describe("Manufacturer name."),
   brand: z.string().describe("Brand or trade name."),
-  presentation: presentationSchema.describe("Presentation form of the item."),
+  presentation: z
+    .string()
+    .describe(
+      "Presentation form of the item. Expected values generally align with the controlled presentation list, but source data may contain blanks or unrecognized labels."
+    ),
   productAmount: z.number().describe("Amount contained per full item unit."),
   productAmountUnit: z
     .string()
     .describe("Unit of measure for productAmount (for example Tablets or mL)."),
   dose: z.string().describe("Dose strength and format."),
-  category: categorySchema.describe("Medication category."),
+  category: z
+    .string()
+    .describe(
+      "Medication category. Expected values generally align with the controlled category list, but source data may contain blanks or unrecognized labels."
+    ),
 });
 
 export const ItemWithQuantitySchema = ItemSchema.extend({
@@ -206,7 +214,8 @@ export const ItemWithQuantitySchema = ItemSchema.extend({
     .number()
     .int()
     .min(0)
-    .describe("Current on-hand quantity for this item."),
+    .nullable()
+    .describe("Current on-hand quantity for this item. Can be null when source data is incomplete."),
 });
 
 export const ItemListResponseSchema = z.object({
@@ -277,6 +286,55 @@ export const ItemInventoryListResponseSchema = z.object({
   itemInventoryRows: z
     .array(ItemInventoryRowSchema)
     .describe("Inventory rows returned for the requested page."),
+});
+
+export const EvaluateItemDataQualityInputSchema = z.object({
+  filter: z
+    .string()
+    .optional()
+    .describe("Optional text filter to scope item quality evaluation."),
+  pageSize: z
+    .number()
+    .int()
+    .min(1)
+    .max(500)
+    .optional()
+    .describe("Page size used while scanning items (default 100)."),
+  maxPages: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Optional limit on pages scanned for faster spot-checks."),
+});
+
+export const ItemDataQualityIssueSchema = z.object({
+  upc: z.string().describe("UPC for the item with data quality issues."),
+  name: z.string().optional().describe("Item name, when available."),
+  description: z
+    .string()
+    .describe("Short summary of the detected issues for this UPC."),
+});
+
+export const EvaluateItemDataQualityResponseSchema = z.object({
+  scannedItems: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total number of item rows scanned."),
+  scannedPages: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Total number of pages scanned."),
+  flaggedItemCount: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Count of UPCs that have one or more issues."),
+  flaggedItems: z
+    .array(ItemDataQualityIssueSchema)
+    .describe("List of flagged UPCs with a short issue summary."),
 });
 
 const CustomsRiskSeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
@@ -385,6 +443,13 @@ export type ItemInventoryListInput = z.infer<typeof ItemInventoryListInputSchema
 export type ItemInventoryRow = z.infer<typeof ItemInventoryRowSchema>;
 export type ItemInventoryListResponse = z.infer<
   typeof ItemInventoryListResponseSchema
+>;
+export type EvaluateItemDataQualityInput = z.infer<
+  typeof EvaluateItemDataQualityInputSchema
+>;
+export type ItemDataQualityIssue = z.infer<typeof ItemDataQualityIssueSchema>;
+export type EvaluateItemDataQualityResponse = z.infer<
+  typeof EvaluateItemDataQualityResponseSchema
 >;
 export type AssessCustomsClearanceRiskInput = z.infer<
   typeof AssessCustomsClearanceRiskSchema

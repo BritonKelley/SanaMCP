@@ -6,12 +6,21 @@ import { CognitoTokenProvider } from "./auth.js";
 import { loadAppConfig } from "./config.js";
 import { SanaApiClient } from "./sanaApi.js";
 import { createAssessCustomsClearanceRiskHandler } from "./tools/assessCustomsClearanceRisk.js";
+import { createEvaluateItemDataQualityHandler } from "./tools/evaluateItemDataQuality.js";
 import { createLookupTripDetailsHandler } from "./tools/lookupTripDetails.js";
+import { createSearchItemInventoryHandler } from "./tools/searchItemInventory.js";
+import { createSearchItemsHandler } from "./tools/searchItems.js";
 import { createSearchTripsHandler } from "./tools/searchTrips.js";
 import {
   AssessCustomsClearanceRiskResponseSchema,
   AssessCustomsClearanceRiskSchema,
+  EvaluateItemDataQualityInputSchema,
+  EvaluateItemDataQualityResponseSchema,
   FetchTripResponseSchema,
+  ItemInventoryListInputSchema,
+  ItemInventoryListResponseSchema,
+  ItemListInputSchema,
+  ItemListResponseSchema,
   LookupTripDetailsSchema,
   SearchTripsResponseSchema,
   TripInventorySchema,
@@ -26,7 +35,11 @@ const sanaApiClient = new SanaApiClient(
 );
 const assessCustomsClearanceRisk =
   createAssessCustomsClearanceRiskHandler(sanaApiClient);
+const evaluateItemDataQuality =
+  createEvaluateItemDataQualityHandler(sanaApiClient);
 const lookupTripDetails = createLookupTripDetailsHandler(sanaApiClient);
+const searchItemInventory = createSearchItemInventoryHandler(sanaApiClient);
+const searchItems = createSearchItemsHandler(sanaApiClient);
 const searchTrips = createSearchTripsHandler(sanaApiClient);
 
 // ── Create & configure server ───────────────────────────────────
@@ -61,6 +74,42 @@ server.registerTool(
     outputSchema: SearchTripsResponseSchema.shape,
   },
   searchTrips
+);
+
+server.registerTool(
+  "search_items",
+  {
+    title: "Search Items",
+    description:
+      "Search medication item master records by page, page size, and optional filter text.",
+    inputSchema: ItemListInputSchema.shape,
+    outputSchema: ItemListResponseSchema.shape,
+  },
+  searchItems
+);
+
+server.registerTool(
+  "search_item_inventory",
+  {
+    title: "Search Item Inventory",
+    description:
+      "Search lot-level item inventory records by page, page size, and optional filter text.",
+    inputSchema: ItemInventoryListInputSchema.shape,
+    outputSchema: ItemInventoryListResponseSchema.shape,
+  },
+  searchItemInventory
+);
+
+server.registerTool(
+  "evaluate_item_data_quality",
+  {
+    title: "Evaluate Item Data Quality",
+    description:
+      "Scan item records for misspellings, leading/trailing whitespace, blank or null fields, and unusual item names. Returns UPCs with a short issue summary.",
+    inputSchema: EvaluateItemDataQualityInputSchema.shape,
+    outputSchema: EvaluateItemDataQualityResponseSchema.shape,
+  },
+  evaluateItemDataQuality
 );
 
 server.registerTool(
