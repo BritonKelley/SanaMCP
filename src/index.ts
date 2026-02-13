@@ -2,11 +2,13 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { CognitoTokenProvider } from "./auth.js";
 import { loadAppConfig } from "./config.js";
 import { SanaApiClient } from "./sanaApi.js";
 import { createAssessCustomsClearanceRiskHandler } from "./tools/assessCustomsClearanceRisk.js";
 import { createEvaluateItemDataQualityHandler } from "./tools/evaluateItemDataQuality.js";
+import { createEvaluateTripPackingReadinessHandler } from "./tools/evaluateTripPackingReadiness.js";
 import { createFindExpiredInventoryHandler } from "./tools/findExpiredInventory.js";
 import { createLookupTripDetailsHandler } from "./tools/lookupTripDetails.js";
 import { createSearchItemInventoryHandler } from "./tools/searchItemInventory.js";
@@ -18,6 +20,8 @@ import {
   AssessCustomsClearanceRiskSchema,
   EvaluateItemDataQualityInputSchema,
   EvaluateItemDataQualityResponseSchema,
+  EvaluateTripPackingReadinessInputSchema,
+  EvaluateTripPackingReadinessResponseSchema,
   FetchTripResponseSchema,
   FindExpiredInventoryInputSchema,
   FindExpiredInventoryResponseSchema,
@@ -43,6 +47,8 @@ const assessCustomsClearanceRisk =
   createAssessCustomsClearanceRiskHandler(sanaApiClient);
 const evaluateItemDataQuality =
   createEvaluateItemDataQualityHandler(sanaApiClient);
+const evaluateTripPackingReadiness =
+  createEvaluateTripPackingReadinessHandler(sanaApiClient);
 const findExpiredInventory = createFindExpiredInventoryHandler(sanaApiClient);
 const lookupTripDetails = createLookupTripDetailsHandler(sanaApiClient);
 const searchItemInventory = createSearchItemInventoryHandler(sanaApiClient);
@@ -121,6 +127,18 @@ server.registerTool(
 );
 
 server.registerTool(
+  "evaluate_trip_packing_readiness",
+  {
+    title: "Evaluate Trip Packing Readiness",
+    description:
+      "Evaluate whether a trip is packed and ready using the trip packing ruleset. Returns GREEN, YELLOW, or RED with rule-level reasons.",
+    inputSchema: EvaluateTripPackingReadinessInputSchema.shape,
+    outputSchema: EvaluateTripPackingReadinessResponseSchema.shape,
+  },
+  evaluateTripPackingReadiness
+);
+
+server.registerTool(
   "evaluate_item_data_quality",
   {
     title: "Evaluate Item Data Quality",
@@ -130,6 +148,35 @@ server.registerTool(
     outputSchema: EvaluateItemDataQualityResponseSchema.shape,
   },
   evaluateItemDataQuality
+);
+
+server.registerPrompt(
+  "trip_packing_readiness_assistant",
+  {
+    title: "Trip Packing Readiness Assistant",
+    description:
+      "Prompt template that guides the AI agent to run the trip readiness tool and provide a clear GREEN/YELLOW/RED readiness assessment.",
+    argsSchema: {
+      tripId: z.number().int().min(1).describe("Trip ID to evaluate."),
+    },
+  },
+  async ({ tripId }) => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `Evaluate trip ${tripId} for packing readiness. Use the evaluate_trip_packing_readiness tool first, then answer with:
+1) Readiness rating (GREEN, YELLOW, or RED)
+2) If YELLOW or RED, the top reasons
+3) A concise action list to get the trip to GREEN
+4) If expiration fails, include the expired medications with box numbers as highest-priority fixes
+5) Call out region-specific and injectable medication gaps when present.
+Do not override the tool's rating.`,
+        },
+      },
+    ],
+  })
 );
 
 server.registerTool(

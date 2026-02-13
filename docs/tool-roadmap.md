@@ -3,7 +3,7 @@
 ## Queued Business Tools
 
 1. `assess_customs_clearance_risk` (completed)
-2. `find_trip_expiration_risks` (queued)
+2. `find_trip_expiration_risks` (completed)
 3. `check_trip_inventory_coverage` (queued)
 4. `build_customs_manifest` (queued)
 7. `suggest_item_substitutions` (queued)

@@ -15,7 +15,7 @@ Every trip should include medications from these essential categories:
 
 - **Oral antibiotics:** Amoxicillin, Azithromycin, Ciprofloxacin, Metronidazole, Cephalexin
 - **Topical antibiotics:** Bacitracin/Neomycin/Polymyxin B ointment (triple antibiotic)
-- **Injectable:** Ceftriaxone (1g vials) for severe infections
+- **Injectable:** Ceftriaxone (1g vials) - 8-12 vials minimum for severe infections
 - *Minimum quantities:* 5-15 different antibiotic formulations
 
 ### 3. Allergy/Respiratory
@@ -89,12 +89,25 @@ Every trip should include medications from these essential categories:
 
 ### Injectable Medications
 
-- Ceftriaxone (1g vials): 8-12 vials
-- Sodium Chloride 0.9% for dilution
+- **Ceftriaxone (1g vials):** 8-12 vials minimum for severe infections
+- **Sodium Chloride 0.9%:** For dilution of injectable medications
+
+### Region-Specific Medications
+
+**Malaria-Endemic Regions** (Required for trips to Sub-Saharan Africa, parts of South/Southeast Asia, Central/South America):
+- **Treatment:** Artemether/Lumefantrine (multiple packages)
+- **Examples of endemic countries:** Uganda, Kenya, Tanzania, Madagascar, Cambodia, Thailand (rural areas), parts of India, Honduras, Haiti, Dominican Republic (rural areas)
+- Verify current malaria risk for specific destination
+
+**Parasitic Treatment** (Required for trips to regions with high intestinal parasite prevalence):
+- **Albendazole:** For roundworm, hookworm, whipworm infections - typically 5-20 packages
+- **Required for:** Most of Sub-Saharan Africa, South/Southeast Asia, rural Central/South America
+- **High-risk countries:** Uganda, Kenya, Tanzania, Madagascar, India, Bangladesh, Cambodia, Vietnam, Philippines, Haiti, Honduras, Guatemala, Dominican Republic (rural areas)
+- Used for mass deworming programs in areas with poor sanitation
 
 ### Expiration Date Rule
 
-- All medications should have at least 6 months of shelf life remaining beyond the trip end date for customs clearance
+- All medications should have at least 6 months of shelf life remaining beyond the trip start date for customs clearance
 
 ---
 
@@ -111,3 +124,7 @@ Every trip should include medications from these essential categories:
   - Prenatal vitamins: <1,000 tablets
 - No cardiac medications
 - All expiration dates within 6 months of trip start
+- **Missing region-specific medications:**
+  - No malaria treatment for malaria-endemic destinations
+  - No albendazole for high-parasite-prevalence regions
+  - No injectable antibiotics (Ceftriaxone + Sodium Chloride)

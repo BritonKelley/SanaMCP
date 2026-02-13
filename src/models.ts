@@ -373,6 +373,78 @@ export const FindExpiredInventoryResponseSchema = z.object({
     ),
 });
 
+const TripPackingReadinessRatingSchema = z.enum(["GREEN", "YELLOW", "RED"]);
+const TripPackingCheckStatusSchema = z.enum(["PASS", "WARN", "FAIL"]);
+
+export const EvaluateTripPackingReadinessInputSchema = z.object({
+  tripId: z.number().int().min(1).describe("Target trip identifier to evaluate."),
+  shelfLifeDays: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "Minimum required remaining shelf life in days beyond trip start date. Defaults to 180."
+    ),
+  includeEvidence: z
+    .boolean()
+    .optional()
+    .describe(
+      "Include detailed evidence payload for each rule. Defaults to true."
+    ),
+});
+
+export const TripPackingReadinessCheckSchema = z.object({
+  ruleId: z.string().describe("Stable identifier for the evaluated rule."),
+  ruleName: z.string().describe("Human-readable rule name."),
+  status: TripPackingCheckStatusSchema.describe("Rule evaluation result."),
+  message: z.string().describe("Short explanation of the result."),
+  recommendedAction: z
+    .string()
+    .optional()
+    .describe("Suggested action when the rule is WARN/FAIL."),
+  evidence: z
+    .unknown()
+    .optional()
+    .describe("Optional structured evidence used to derive the rule result."),
+});
+
+export const TripPackingReadinessSummarySchema = z.object({
+  totalChecks: z.number().int().min(0),
+  passedChecks: z.number().int().min(0),
+  warningChecks: z.number().int().min(0),
+  failedChecks: z.number().int().min(0),
+  totalPackedItems: z.number().int().min(0),
+  formulationAdequacyStatus: TripPackingCheckStatusSchema.describe(
+    "Status for formulation adequacy by context."
+  ),
+  pediatricReadinessStatus: TripPackingCheckStatusSchema.describe(
+    "Status for pediatric readiness coverage."
+  ),
+  pediatricReadinessConfidence: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe("Pediatric readiness confidence percentage (0-100)."),
+});
+
+export const EvaluateTripPackingReadinessResponseSchema = z.object({
+  trip: TripSchema.describe("Trip-level metadata used for readiness evaluation."),
+  rating: TripPackingReadinessRatingSchema.describe(
+    "Overall readiness rating."
+  ),
+  summary: TripPackingReadinessSummarySchema,
+  reasons: z
+    .array(TripPackingReadinessCheckSchema)
+    .describe("WARN/FAIL checks that explain YELLOW or RED ratings."),
+  checks: z
+    .array(TripPackingReadinessCheckSchema)
+    .describe("Full set of evaluated rule checks."),
+  recommendedActions: z
+    .array(z.string())
+    .describe("Consolidated prioritized actions to improve readiness."),
+});
+
 export const UpdateItemInputSchema = z.object({
   upc: upcSchema.describe("Universal Product Code for the item to update."),
   name: z.string().min(1).describe("Display medication name."),
@@ -577,6 +649,18 @@ export type FindExpiredInventoryInput = z.infer<
 >;
 export type FindExpiredInventoryResponse = z.infer<
   typeof FindExpiredInventoryResponseSchema
+>;
+export type EvaluateTripPackingReadinessInput = z.infer<
+  typeof EvaluateTripPackingReadinessInputSchema
+>;
+export type TripPackingReadinessCheck = z.infer<
+  typeof TripPackingReadinessCheckSchema
+>;
+export type TripPackingReadinessSummary = z.infer<
+  typeof TripPackingReadinessSummarySchema
+>;
+export type EvaluateTripPackingReadinessResponse = z.infer<
+  typeof EvaluateTripPackingReadinessResponseSchema
 >;
 export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
 export type UpdateItemApiItem = z.infer<typeof UpdateItemApiItemSchema>;
