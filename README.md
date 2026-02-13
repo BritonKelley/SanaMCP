@@ -1,6 +1,6 @@
 # Sana MCP Server
 
-MCP server for searching Sana trips and looking up trip details over stdio.
+MCP server for Sana trip, item, inventory, customs, and packing-readiness workflows over stdio.
 
 ## Requirements
 
@@ -69,6 +69,16 @@ If `SANA_CONFIG_PATH` is not set, default path is `config/sanamcp.local.json`.
 
 ## Tools
 
-- `search_trips`
 - `lookup_trip_details`
+- `search_trips`
+- `search_items`
+- `search_item_inventory`
+- `find_expired_inventory`
+- `evaluate_trip_packing_readiness`
+- `evaluate_item_data_quality`
+- `update_item`
 - `assess_customs_clearance_risk`
+
+## Prompts
+
+- `trip_packing_readiness_assistant`

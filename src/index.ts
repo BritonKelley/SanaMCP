@@ -60,7 +60,7 @@ const updateItem = createUpdateItemHandler(sanaApiClient);
 
 const server = new McpServer({
   name: "medical_trip",
-  version: "1.0.0",
+  version: "1.4.0",
   description: "Tools for looking up medical trip details and browsing medical trip inventory including medication packed on trips.",
 });
 

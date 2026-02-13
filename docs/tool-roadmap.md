@@ -1,12 +1,47 @@
 # Sana MCP Tool Roadmap
 
-## Queued Business Tools
+## Business Tool Status
 
 1. `assess_customs_clearance_risk` (completed)
 2. `find_trip_expiration_risks` (completed)
-3. `check_trip_inventory_coverage` (queued)
+3. `check_trip_inventory_coverage` (completed via `evaluate_trip_packing_readiness`)
 4. `build_customs_manifest` (queued)
-7. `suggest_item_substitutions` (queued)
+5. `suggest_item_substitutions` (queued)
+
+---
+
+## Completed Business Tools
+
+### `assess_customs_clearance_risk` (completed)
+- Purpose: determine whether a trip is likely to clear customs based on expiration and data quality.
+- Data source: `/trip/{id}`.
+- Output highlights:
+  - `summary.assessment` (`PASS|FAIL`)
+  - `breakdown.failedItemsByBox[]`
+  - grouped failed item instances by `itemName + expirationDate`
+- Notes:
+  - evaluates `PACKING`/`PACKED` trips that have not departed yet.
+  - supports configurable shelf-life policy window (default 180 days).
+
+### `evaluate_trip_packing_readiness` (completed)
+- Purpose: evaluate whether a trip is packed and ready using deterministic packing rules.
+- Data source: `/trip/{id}`.
+- Output highlights:
+  - overall `rating` (`GREEN|YELLOW|RED`)
+  - `summary` check counts and pediatric readiness confidence (%)
+  - detailed `checks[]` and focused `reasons[]`
+  - prioritized `recommendedActions[]`
+- Coverage includes:
+  - core category presence
+  - named medication coverage
+  - formulation adequacy and common medication formulation diversity
+  - antibiotic diversity
+  - topical, GI, cardiac, injectable depth checks
+  - region-specific medication checks by country mapping
+  - vitamin red-flag minimum thresholds (`FAIL`) and preferred ranges (`WARN`)
+  - expiration checks against trip start date, including high-priority expired-med list with box numbers
+- Notes:
+  - all thresholds, keyword sets, rule identifiers, and country mappings are centralized in `src/tools/evaluationConstants.ts` for easy policy tuning.
 
 ---
 
@@ -21,7 +56,7 @@
   - `totalPages`, `totalItems`, `page`
   - `itemsWithQuantity[]`
 - Notes:
-  - tool now tolerates imperfect source values (blank/unknown `category` or `presentation`, and `quantity: null`) without failing.
+  - tool tolerates imperfect source values (blank/unknown `category` or `presentation`, and `quantity: null`) without failing.
   - response stays shape-compatible for both paged and direct `upc` lookup modes.
 
 ### `search_item_inventory` (completed)
@@ -45,7 +80,7 @@
   - invalid/unknown category or presentation values
 - Output:
   - `scannedItems`, `scannedPages`, `flaggedItemCount`
-  - `flaggedItems[]` with `upc` and short issue `description`.
+  - `flaggedItems[]` with `upc` and short issue `description`
 
 ### `update_item` (completed)
 - Purpose: update item master data by UPC.
@@ -67,74 +102,14 @@
 
 ---
 
-## Tool 1: assess_customs_clearance_risk
+## Next Up
 
-### Business question
-Will this trip likely clear customs with the currently packed medication?
+### `build_customs_manifest` (queued)
+- Proposed scope:
+  - produce a customs-ready manifest grouped by box with medication, lot, expiration, and quantities.
+  - include a validation summary for missing/invalid customs-required fields.
 
-### Goal
-Return a clear pass/fail customs assessment with item-level findings and actionable next steps before shipment.
-
-### MCP Tool Name
-`assess_customs_clearance_risk`
-
-### Proposed Input
-- `tripId` (number, required): target trip to assess
-- `countryCode` (string, optional): override destination if needed, default from trip
-- `minShelfLifeDays` (number, optional): default policy threshold (default: 180)
-- `includeWarnings` (boolean, optional): include medium/low risk observations
-
-### Proposed Output
-- `trip`:
-  - `tripId`, `name`, `countryCode`, `startDate`, `endDate`, `status`
-- `summary`:
-  - `assessment`: `PASS | FAIL`
-  - `totalItems`
-  - `failedItemsCount`
-- `breakdown`:
-  - `totalExpirationFindings`
-  - `expirationFindingsByMonth`: `{ expirationMonth: MM/YYYY, count }[]`
-  - `failedItemsByBox`: `{ boxNumber, items: [{ itemName, expirationDate, instances }] }[]`
-    - duplicate `itemName + expirationDate` rows are grouped with `instances`
-- `findings` (array):
-  - `severity`: `HIGH | MEDIUM`
-  - `type`: `EXPIRATION | DATA_GAP | TRIP_INELIGIBLE`
-  - `upc`, `itemName`, `lotNumber`, `expirationDate`, `inventoryId`
-  - `message`
-  - `recommendedAction`
-- `nextSteps` (array of string)
-
-### Data sources
-- Existing:
-  - `/trip/{id}` only -> packed items, trip dates, lot/expiration/details needed for assessment
-
-### High-level implementation flow
-1. Load trip details from `tripId`.
-2. Validate trip eligibility:
-   - `status` must be `PACKING` or `PACKED`
-   - trip must not have departed yet (trip start date has not passed)
-3. For each trip item:
-   - validate required customs fields present in trip payload
-   - evaluate expiration risk versus trip entry/start date + `minShelfLifeDays` (default 180)
-4. Aggregate findings into summary and breakdown sections.
-5. Return structured content for agent reasoning and human review.
-
-### Initial customs policy strategy (MVP)
-- Global rule only:
-  - medication expiration must be at least 6 months (180 days) after entering country
-- No restricted categories for now.
-- Required fields are validated directly from trip item payload.
-
-### Error handling expectations
-- If trip not found -> explicit not found error.
-- If trip status/date makes the trip ineligible -> return explicit validation error.
-- If no packed items -> return a `PASS` assessment with a data-gap warning and next step to pack/reassess.
-
-### Definition of done (tool 1)
-- Tool returns deterministic summary + findings for a valid `tripId`.
-- Handles partial API failures without crashing.
-- Produces at least one actionable `nextSteps` recommendation when risk exists.
-- Includes output schema in `registerTool`.
-
-### Open decisions before implementation
-- None currently.
+### `suggest_item_substitutions` (queued)
+- Proposed scope:
+  - suggest replacements when a medication is expired, unavailable, or under target levels.
+  - prioritize same-category and same-presentation substitutions from current inventory.
