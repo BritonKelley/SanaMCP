@@ -29,19 +29,50 @@ export class SanaApiClient {
     >
   ) {}
 
-  private async fetchWithBearer(url: string, token: string): Promise<Response> {
+  private async fetchWithBearer(
+    url: string,
+    token: string,
+    init?: RequestInit
+  ): Promise<Response> {
     return fetch(url, {
+      ...init,
       headers: {
         "User-Agent": this.userAgent,
         Accept: "application/json",
         "Content-Type": "application/json; charset=utf-8",
         "X-Requested-With": "XMLHttpRequest",
         "x-sana-token": `Bearer ${token}`,
+        ...(init?.headers ?? {}),
       },
     });
   }
 
-  async request<T>(path: string): Promise<T> {
+  private async parseResponseBody<T>(response: Response): Promise<T | null> {
+    if (response.status === 204 || response.status === 205) {
+      return null;
+    }
+
+    const responseText = await response.text();
+    if (!responseText.trim()) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(responseText) as T;
+    } catch {
+      throw new SanaApiRequestError(
+        `Sana API returned non-JSON response (${response.status})`,
+        response.status,
+        responseText
+      );
+    }
+  }
+
+  private async requestWithMethod<T>(
+    method: "GET" | "PUT",
+    path: string,
+    body?: unknown
+  ): Promise<T | null> {
     const requestUrl = `${this.apiBaseUrl}${path}`;
 
     let accessToken: string;
@@ -53,7 +84,12 @@ export class SanaApiClient {
       );
     }
 
-    let response = await this.fetchWithBearer(requestUrl, accessToken);
+    const requestInit: RequestInit = {
+      method,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    };
+
+    let response = await this.fetchWithBearer(requestUrl, accessToken, requestInit);
     if (response.status === 401) {
       try {
         accessToken = await this.tokenProvider.forceRefresh();
@@ -66,7 +102,7 @@ export class SanaApiClient {
         );
       }
 
-      response = await this.fetchWithBearer(requestUrl, accessToken);
+      response = await this.fetchWithBearer(requestUrl, accessToken, requestInit);
     }
 
     if (!response.ok) {
@@ -79,6 +115,21 @@ export class SanaApiClient {
       );
     }
 
-    return (await response.json()) as T;
+    return this.parseResponseBody<T>(response);
+  }
+
+  async request<T>(path: string): Promise<T> {
+    const response = await this.requestWithMethod<T>("GET", path);
+    if (response === null) {
+      throw new SanaApiRequestError(
+        "Sana API returned an empty response for a GET request."
+      );
+    }
+
+    return response;
+  }
+
+  async put<TResponse, TBody>(path: string, body: TBody): Promise<TResponse | null> {
+    return this.requestWithMethod<TResponse>("PUT", path, body);
   }
 }

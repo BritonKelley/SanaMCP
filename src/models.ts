@@ -148,6 +148,11 @@ export const SearchTripsResponseSchema = z.object({
 });
 
 export const ItemListInputSchema = z.object({
+  upc: upcSchema
+    .optional()
+    .describe(
+      "Optional UPC for direct lookup via /item/{upc}. When provided, page/pageSize/filter are ignored."
+    ),
   page: z
     .number()
     .int()
@@ -286,6 +291,49 @@ export const ItemInventoryListResponseSchema = z.object({
   itemInventoryRows: z
     .array(ItemInventoryRowSchema)
     .describe("Inventory rows returned for the requested page."),
+});
+
+export const UpdateItemInputSchema = z.object({
+  upc: upcSchema.describe("Universal Product Code for the item to update."),
+  name: z.string().min(1).describe("Display medication name."),
+  manufacturer: z.string().min(1).describe("Manufacturer name."),
+  brand: z.string().min(1).describe("Brand or trade name."),
+  presentation: presentationSchema.describe("Presentation form of the item."),
+  productAmount: z.number().nonnegative().describe("Amount contained per full item unit."),
+  productAmountUnit: z
+    .string()
+    .min(1)
+    .describe("Unit of measure for productAmount (for example Tablets or mL)."),
+  dose: z.string().describe("Dose strength and format."),
+  category: categorySchema.describe("Medication category."),
+  quantity: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Current on-hand quantity for this item."),
+});
+
+export const UpdateItemApiItemSchema = z.object({
+  name: z.string().describe("Display medication name."),
+  brand: z.string().describe("Brand or trade name."),
+  manufacturer: z.string().describe("Manufacturer name."),
+  productAmount: z.number().describe("Amount contained per full item unit."),
+  productAmountUnit: z.string().describe("Unit label for product amount."),
+  presentation: z.string().describe("Presentation form from API response."),
+  dose: z.string().describe("Dose strength and format."),
+  category: z.string().describe("Medication category from API response."),
+  is_complete: z.boolean().describe("Whether the item record is complete."),
+  price: z.number().nullable().describe("Configured unit price when available."),
+  productAmountUnitEnum: z
+    .string()
+    .describe("Normalized enum-style unit label returned by API."),
+  upc: upcSchema.describe("Universal Product Code for the updated item."),
+});
+
+export const UpdateItemResponseSchema = z.object({
+  item: UpdateItemApiItemSchema.describe(
+    "Updated item confirmation payload returned by the API."
+  ),
 });
 
 export const EvaluateItemDataQualityInputSchema = z.object({
@@ -444,6 +492,9 @@ export type ItemInventoryRow = z.infer<typeof ItemInventoryRowSchema>;
 export type ItemInventoryListResponse = z.infer<
   typeof ItemInventoryListResponseSchema
 >;
+export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
+export type UpdateItemApiItem = z.infer<typeof UpdateItemApiItemSchema>;
+export type UpdateItemResponse = z.infer<typeof UpdateItemResponseSchema>;
 export type EvaluateItemDataQualityInput = z.infer<
   typeof EvaluateItemDataQualityInputSchema
 >;

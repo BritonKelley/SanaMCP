@@ -11,6 +11,7 @@ import { createLookupTripDetailsHandler } from "./tools/lookupTripDetails.js";
 import { createSearchItemInventoryHandler } from "./tools/searchItemInventory.js";
 import { createSearchItemsHandler } from "./tools/searchItems.js";
 import { createSearchTripsHandler } from "./tools/searchTrips.js";
+import { createUpdateItemHandler } from "./tools/updateItem.js";
 import {
   AssessCustomsClearanceRiskResponseSchema,
   AssessCustomsClearanceRiskSchema,
@@ -24,6 +25,8 @@ import {
   LookupTripDetailsSchema,
   SearchTripsResponseSchema,
   TripInventorySchema,
+  UpdateItemInputSchema,
+  UpdateItemResponseSchema,
 } from "./models.js";
 
 const appConfig = loadAppConfig();
@@ -41,6 +44,7 @@ const lookupTripDetails = createLookupTripDetailsHandler(sanaApiClient);
 const searchItemInventory = createSearchItemInventoryHandler(sanaApiClient);
 const searchItems = createSearchItemsHandler(sanaApiClient);
 const searchTrips = createSearchTripsHandler(sanaApiClient);
+const updateItem = createUpdateItemHandler(sanaApiClient);
 
 // ── Create & configure server ───────────────────────────────────
 
@@ -110,6 +114,18 @@ server.registerTool(
     outputSchema: EvaluateItemDataQualityResponseSchema.shape,
   },
   evaluateItemDataQuality
+);
+
+server.registerTool(
+  "update_item",
+  {
+    title: "Update Item",
+    description:
+      "Update an item master record by UPC using PUT /item and return confirmation payload.",
+    inputSchema: UpdateItemInputSchema.shape,
+    outputSchema: UpdateItemResponseSchema.shape,
+  },
+  updateItem
 );
 
 server.registerTool(
