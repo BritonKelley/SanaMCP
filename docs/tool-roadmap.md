@@ -10,6 +10,37 @@
 
 ---
 
+## Completed Support Tools
+
+### `search_items` (completed)
+- Purpose: search item master data with pagination and optional filter.
+- Endpoint: `/item?page={page}&pageSize={pageSize}&filter={filter}`.
+- Output highlights:
+  - `totalPages`, `totalItems`, `page`
+  - `itemsWithQuantity[]`
+- Notes:
+  - tool now tolerates imperfect source values (blank/unknown `category` or `presentation`, and `quantity: null`) without failing.
+
+### `search_item_inventory` (completed)
+- Purpose: search lot-level inventory rows with pagination and optional filter.
+- Endpoint: `/item-inventory?page={page}&pageSize={pageSize}&filter={filter}`.
+- Output highlights:
+  - `totalPages`, `totalItems`, `page`
+  - `itemInventoryRows[]` including `inventoryId`, `upc`, `lotNumber`, `expirationDate`, `manufacturedDate`, `quantity`, and item descriptors.
+
+### `evaluate_item_data_quality` (completed)
+- Purpose: identify likely item data problems and return actionable UPC-level findings.
+- Checks include:
+  - misspellings / out-of-ordinary naming patterns
+  - leading/trailing whitespace in text fields
+  - null or blank fields
+  - invalid/unknown category or presentation values
+- Output:
+  - `scannedItems`, `scannedPages`, `flaggedItemCount`
+  - `flaggedItems[]` with `upc` and short issue `description`.
+
+---
+
 ## Tool 1: assess_customs_clearance_risk
 
 ### Business question
