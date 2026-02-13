@@ -14,6 +14,11 @@ const tripItemDateSchema = z
     "Date must be in MM/YYYY format."
   );
 
+const manufacturedDateSchema = z.union([
+  tripItemDateSchema,
+  tripDateSchema,
+]);
+
 const upcSchema = z
   .string()
   .regex(/^\d{8}(\d{4})?$/, "UPC must be 8 digits (UPC-E) or 12 digits (UPC-A).");
@@ -106,7 +111,9 @@ export const TripItemSchema = z.object({
   name: z.string().describe("Display name of the medication or supply."),
   brand: z.string().describe("Brand name of the item."),
   manufacturer: z.string().describe("Manufacturer of the item."),
-  manufacturedDate: tripItemDateSchema.optional().describe("Manufacture date in MM/YYYY format, when available."),
+  manufacturedDate: manufacturedDateSchema
+    .optional()
+    .describe("Manufacture date in MM/YYYY or YYYY-MM-DD format, when available."),
   presentation: presentationSchema.describe("Presentation form of the item."),
   dose: z.string().describe("Dose strength and format for the item."),
   category: categorySchema.describe("Inventory category classification."),
@@ -241,6 +248,14 @@ export const ItemListResponseSchema = z.object({
 });
 
 export const ItemInventoryListInputSchema = z.object({
+  inventoryId: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional inventory record ID for direct lookup via /item-inventory/with-item/{inventoryId}. When provided, page/pageSize/filter are ignored."
+    ),
   page: z
     .number()
     .int()
@@ -261,7 +276,7 @@ export const ItemInventoryListInputSchema = z.object({
     .describe("Optional text filter applied by the Item Inventory API."),
 });
 
-export const ItemInventoryRowSchema = ItemWithQuantitySchema.extend({
+export const ItemInventorySchema = ItemWithQuantitySchema.extend({
   inventoryId: z
     .number()
     .int()
@@ -269,9 +284,11 @@ export const ItemInventoryRowSchema = ItemWithQuantitySchema.extend({
     .describe("Unique inventory record identifier."),
   lotNumber: z.string().describe("Manufacturer lot or batch number."),
   expirationDate: tripItemDateSchema.describe("Inventory lot expiration in MM/YYYY format."),
-  manufacturedDate: tripItemDateSchema
+  manufacturedDate: manufacturedDateSchema
     .nullable()
-    .describe("Inventory lot manufactured date in MM/YYYY format. Null when unknown."),
+    .describe(
+      "Inventory lot manufactured date in MM/YYYY or YYYY-MM-DD format. Null when unknown."
+    ),
 });
 
 export const ItemInventoryListResponseSchema = z.object({
@@ -289,8 +306,55 @@ export const ItemInventoryListResponseSchema = z.object({
     "Pagination metadata returned by the Item Inventory API."
   ),
   itemInventoryRows: z
-    .array(ItemInventoryRowSchema)
+    .array(ItemInventorySchema)
     .describe("Inventory rows returned for the requested page."),
+});
+
+export const FindExpiredInventoryInputSchema = z.object({
+  asOfDate: tripDateSchema
+    .optional()
+    .describe(
+      "Date used to evaluate expiration in YYYY-MM-DD format. Defaults to today (UTC)."
+    ),
+  filter: z
+    .string()
+    .optional()
+    .describe("Optional text filter passed through to the item-inventory API."),
+  pageSize: z
+    .number()
+    .int()
+    .min(1)
+    .max(500)
+    .optional()
+    .describe("Page size used while scanning inventory (default 100)."),
+  maxPages: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Optional limit on the number of pages scanned."),
+});
+
+export const FindExpiredInventoryResponseSchema = z.object({
+  asOfDate: tripDateSchema.describe(
+    "As-of date used to evaluate expiration in YYYY-MM-DD format."
+  ),
+  scannedPages: z.number().int().min(0).describe("Number of pages scanned."),
+  scannedItems: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Number of inventory rows scanned."),
+  expiredCount: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Number of expired inventory rows with positive on-hand quantity."),
+  expiredItems: z
+    .array(ItemInventorySchema)
+    .describe(
+      "Inventory rows considered expired as of the provided date, excluding rows with quantity 0 or null."
+    ),
 });
 
 export const UpdateItemInputSchema = z.object({
@@ -488,9 +552,15 @@ export type Item = z.infer<typeof ItemSchema>;
 export type ItemWithQuantity = z.infer<typeof ItemWithQuantitySchema>;
 export type ItemListResponse = z.infer<typeof ItemListResponseSchema>;
 export type ItemInventoryListInput = z.infer<typeof ItemInventoryListInputSchema>;
-export type ItemInventoryRow = z.infer<typeof ItemInventoryRowSchema>;
+export type ItemInventory = z.infer<typeof ItemInventorySchema>;
 export type ItemInventoryListResponse = z.infer<
   typeof ItemInventoryListResponseSchema
+>;
+export type FindExpiredInventoryInput = z.infer<
+  typeof FindExpiredInventoryInputSchema
+>;
+export type FindExpiredInventoryResponse = z.infer<
+  typeof FindExpiredInventoryResponseSchema
 >;
 export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
 export type UpdateItemApiItem = z.infer<typeof UpdateItemApiItemSchema>;

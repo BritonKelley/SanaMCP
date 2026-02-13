@@ -14,19 +14,27 @@
 
 ### `search_items` (completed)
 - Purpose: search item master data with pagination and optional filter.
-- Endpoint: `/item?page={page}&pageSize={pageSize}&filter={filter}`.
+- Endpoints:
+  - `/item?page={page}&pageSize={pageSize}&filter={filter}`
+  - `/item/{upc}` for direct single-item lookup
 - Output highlights:
   - `totalPages`, `totalItems`, `page`
   - `itemsWithQuantity[]`
 - Notes:
   - tool now tolerates imperfect source values (blank/unknown `category` or `presentation`, and `quantity: null`) without failing.
+  - response stays shape-compatible for both paged and direct `upc` lookup modes.
 
 ### `search_item_inventory` (completed)
 - Purpose: search lot-level inventory rows with pagination and optional filter.
-- Endpoint: `/item-inventory?page={page}&pageSize={pageSize}&filter={filter}`.
+- Endpoints:
+  - `/item-inventory?page={page}&pageSize={pageSize}&filter={filter}`
+  - `/item-inventory/with-item/{inventoryId}` for direct single-record lookup
 - Output highlights:
   - `totalPages`, `totalItems`, `page`
   - `itemInventoryRows[]` including `inventoryId`, `upc`, `lotNumber`, `expirationDate`, `manufacturedDate`, `quantity`, and item descriptors.
+- Notes:
+  - only rows with `quantity >= 1` are returned in paged search mode.
+  - `manufacturedDate` supports either `MM/YYYY` or `YYYY-MM-DD` from source data.
 
 ### `evaluate_item_data_quality` (completed)
 - Purpose: identify likely item data problems and return actionable UPC-level findings.
@@ -38,6 +46,24 @@
 - Output:
   - `scannedItems`, `scannedPages`, `flaggedItemCount`
   - `flaggedItems[]` with `upc` and short issue `description`.
+
+### `update_item` (completed)
+- Purpose: update item master data by UPC.
+- Endpoint: `PUT /item`.
+- Output:
+  - update confirmation payload with the updated `item` object.
+- Notes:
+  - `quantity` can be sent for API compatibility, but effective inventory is driven by item-inventory totals.
+
+### `find_expired_inventory` (completed)
+- Purpose: report currently expired inventory lots.
+- Endpoint used: `/item-inventory` (scanned with pagination).
+- Expiration rule:
+  - `expirationDate` is interpreted as valid through end-of-month for `MM/YYYY`.
+- Output:
+  - `asOfDate`, `scannedPages`, `scannedItems`, `expiredCount`, `expiredItems[]`
+- Notes:
+  - excludes historical/non-stock rows where `quantity` is `0` or `null`.
 
 ---
 

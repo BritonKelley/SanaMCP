@@ -7,6 +7,7 @@ import { loadAppConfig } from "./config.js";
 import { SanaApiClient } from "./sanaApi.js";
 import { createAssessCustomsClearanceRiskHandler } from "./tools/assessCustomsClearanceRisk.js";
 import { createEvaluateItemDataQualityHandler } from "./tools/evaluateItemDataQuality.js";
+import { createFindExpiredInventoryHandler } from "./tools/findExpiredInventory.js";
 import { createLookupTripDetailsHandler } from "./tools/lookupTripDetails.js";
 import { createSearchItemInventoryHandler } from "./tools/searchItemInventory.js";
 import { createSearchItemsHandler } from "./tools/searchItems.js";
@@ -18,6 +19,8 @@ import {
   EvaluateItemDataQualityInputSchema,
   EvaluateItemDataQualityResponseSchema,
   FetchTripResponseSchema,
+  FindExpiredInventoryInputSchema,
+  FindExpiredInventoryResponseSchema,
   ItemInventoryListInputSchema,
   ItemInventoryListResponseSchema,
   ItemListInputSchema,
@@ -40,6 +43,7 @@ const assessCustomsClearanceRisk =
   createAssessCustomsClearanceRiskHandler(sanaApiClient);
 const evaluateItemDataQuality =
   createEvaluateItemDataQualityHandler(sanaApiClient);
+const findExpiredInventory = createFindExpiredInventoryHandler(sanaApiClient);
 const lookupTripDetails = createLookupTripDetailsHandler(sanaApiClient);
 const searchItemInventory = createSearchItemInventoryHandler(sanaApiClient);
 const searchItems = createSearchItemsHandler(sanaApiClient);
@@ -97,11 +101,23 @@ server.registerTool(
   {
     title: "Search Item Inventory",
     description:
-      "Search lot-level item inventory records by page, page size, and optional filter text.",
+      "Search lot-level item inventory records by page, page size, and optional filter text (returns only rows with quantity >= 1), or fetch one record directly by inventoryId.",
     inputSchema: ItemInventoryListInputSchema.shape,
     outputSchema: ItemInventoryListResponseSchema.shape,
   },
   searchItemInventory
+);
+
+server.registerTool(
+  "find_expired_inventory",
+  {
+    title: "Find Expired Inventory",
+    description:
+      "Scan item inventory rows and return expired entries that still have positive on-hand quantity as of today (or an optional asOfDate).",
+    inputSchema: FindExpiredInventoryInputSchema.shape,
+    outputSchema: FindExpiredInventoryResponseSchema.shape,
+  },
+  findExpiredInventory
 );
 
 server.registerTool(
