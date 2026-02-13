@@ -61,8 +61,8 @@ Every trip should include medications from these essential categories:
 
 ### High-Volume Items (appear on every trip)
 
-- Acetaminophen: 10-15 different formulations
-- Ibuprofen: 8-12 different formulations
+- Acetaminophen: 5-8 different formulations
+- Ibuprofen: 4-6 different formulations
 - Diphenhydramine: 6-10 different formulations
 - Clotrimazole cream: 6-15 tubes
 - Hydrocortisone cream: 4-10 tubes
