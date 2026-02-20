@@ -1,7 +1,7 @@
 {
   "name": "sana-mcp-server",
   "version": "1.4.1",
-  "description": "Sana MCP server for trips, inventory, customs checks, and packing readiness workflows.",
+  "description": "Sana MCP server for trips, inventory, and packing readiness workflows.",
   "main": "./dist/index.js",
   "bin": {
     "sanamcp-server": "./dist/index.js"

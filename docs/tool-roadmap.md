@@ -2,26 +2,14 @@
 
 ## Business Tool Status
 
-1. `assess_customs_clearance_risk` (completed)
-2. `find_trip_expiration_risks` (completed)
-3. `check_trip_inventory_coverage` (completed via `evaluate_trip_packing_readiness`)
-4. `build_customs_manifest` (queued)
-5. `suggest_item_substitutions` (queued)
+1. `find_trip_expiration_risks` (completed)
+2. `check_trip_inventory_coverage` (completed via `evaluate_trip_packing_readiness`)
+3. `build_customs_manifest` (queued)
+4. `suggest_item_substitutions` (queued)
 
 ---
 
 ## Completed Business Tools
-
-### `assess_customs_clearance_risk` (completed)
-- Purpose: determine whether a trip is likely to clear customs based on expiration and data quality.
-- Data source: `/trip/{id}`.
-- Output highlights:
-  - `summary.assessment` (`PASS|FAIL`)
-  - `breakdown.failedItemsByBox[]`
-  - grouped failed item instances by `itemName + expirationDate`
-- Notes:
-  - evaluates `PACKING`/`PACKED` trips that have not departed yet.
-  - supports configurable shelf-life policy window (default 180 days).
 
 ### `evaluate_trip_packing_readiness` (completed)
 - Purpose: evaluate whether a trip is packed and ready using deterministic packing rules.

@@ -1,6 +1,6 @@
 # Sana MCP Server
 
-MCP server for Sana trip, item, inventory, customs, and packing-readiness workflows over stdio.
+MCP server for Sana trip, item, inventory, and packing-readiness workflows over stdio.
 
 ## Requirements
 
@@ -77,7 +77,6 @@ If `SANA_CONFIG_PATH` is not set, default path is `config/sanamcp.local.json`.
 - `evaluate_trip_packing_readiness`
 - `evaluate_item_data_quality`
 - `update_item`
-- `assess_customs_clearance_risk`
 
 ## Prompts
 

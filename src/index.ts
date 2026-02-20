@@ -6,7 +6,6 @@ import { z } from "zod";
 import { CognitoTokenProvider } from "./auth.js";
 import { loadAppConfig } from "./config.js";
 import { SanaApiClient } from "./sanaApi.js";
-import { createAssessCustomsClearanceRiskHandler } from "./tools/assessCustomsClearanceRisk.js";
 import { createEvaluateItemDataQualityHandler } from "./tools/evaluateItemDataQuality.js";
 import { createEvaluateTripPackingReadinessHandler } from "./tools/evaluateTripPackingReadiness.js";
 import { createFindExpiredInventoryHandler } from "./tools/findExpiredInventory.js";
@@ -16,8 +15,6 @@ import { createSearchItemsHandler } from "./tools/searchItems.js";
 import { createSearchTripsHandler } from "./tools/searchTrips.js";
 import { createUpdateItemHandler } from "./tools/updateItem.js";
 import {
-  AssessCustomsClearanceRiskResponseSchema,
-  AssessCustomsClearanceRiskSchema,
   EvaluateItemDataQualityInputSchema,
   EvaluateItemDataQualityResponseSchema,
   EvaluateTripPackingReadinessInputSchema,
@@ -43,8 +40,6 @@ const sanaApiClient = new SanaApiClient(
   appConfig.userAgent,
   tokenProvider
 );
-const assessCustomsClearanceRisk =
-  createAssessCustomsClearanceRiskHandler(sanaApiClient);
 const evaluateItemDataQuality =
   createEvaluateItemDataQualityHandler(sanaApiClient);
 const evaluateTripPackingReadiness =
@@ -189,18 +184,6 @@ server.registerTool(
     outputSchema: UpdateItemResponseSchema.shape,
   },
   updateItem
-);
-
-server.registerTool(
-  "assess_customs_clearance_risk",
-  {
-    title: "Assess Customs Clearance Risk",
-    description:
-      "Assess whether a PACKING or PACKED trip that has not yet started can clear customs based on 6-month medication shelf-life requirements.",
-    inputSchema: AssessCustomsClearanceRiskSchema.shape,
-    outputSchema: AssessCustomsClearanceRiskResponseSchema.shape,
-  },
-  assessCustomsClearanceRisk
 );
 
 // Start the server
